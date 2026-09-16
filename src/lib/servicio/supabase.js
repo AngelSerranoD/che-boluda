@@ -7,6 +7,7 @@
  */
 import { createClient } from '@supabase/supabase-js';
 import { emailDeUsuario } from '../validar.js';
+import { crearCanalesCompartidos } from './canales.js';
 import { comprobar, ErrorApp, traducirError } from './errores.js';
 
 const CAMPOS_PERFIL = 'id, usuario, nombre, avatar, foto';
@@ -20,6 +21,9 @@ export function crearServicioSupabase({ url, clave }) {
 
   let yo = null;
   const audios = new Map(); // caché pequeña de descargas
+  const canales = crearCanalesCompartidos(sb);
+  // Solo en desarrollo: __cheboluda.canales.resumen() enseña el estado de cada canal.
+  if (import.meta.env?.DEV) globalThis.__cheboluda = { sb, canales };
 
   sb.auth.onAuthStateChange((_evento, sesion) => {
     yo = sesion?.user?.id ?? null;
@@ -208,16 +212,26 @@ export function crearServicioSupabase({ url, clave }) {
     },
 
     // ───────── Tiempo real ─────────
-    /** Llama a `cb({ tabla, evento, fila })` con cada cambio que afecte a la persona. */
+    /**
+     * Llama a `cb({ tabla, evento, fila })` con cada cambio que afecte a la persona.
+     * Varias pantallas escuchan a la vez: comparten un único canal (ver canales.js).
+     */
     alCambiar(cb) {
-      const canal = sb.channel(`cambios:${yo}`);
-      for (const tabla of ['mensajes', 'miembros', 'amistades']) {
-        canal.on('postgres_changes', { event: '*', schema: 'public', table: tabla }, (c) =>
-          cb({ tabla, evento: c.eventType, fila: c.new && Object.keys(c.new).length ? c.new : c.old })
-        );
-      }
-      canal.subscribe();
-      return () => sb.removeChannel(canal);
+      const { soltar } = canales.unir(
+        `cambios:${necesitoSesion()}`,
+        {
+          preparar(canal, compartido) {
+            for (const tabla of ['mensajes', 'miembros', 'amistades']) {
+              canal.on('postgres_changes', { event: '*', schema: 'public', table: tabla }, (c) => {
+                const cambio = { tabla, evento: c.eventType, fila: c.new && Object.keys(c.new).length ? c.new : c.old };
+                compartido.oyentes.forEach((o) => o.cb(cambio));
+              });
+            }
+          },
+        },
+        { cb }
+      );
+      return soltar;
     },
 
     /**
@@ -226,31 +240,36 @@ export function crearServicioSupabase({ url, clave }) {
      */
     canalDeVoz(sala, { alVoz, alPresencia, alEstado }) {
       const id = necesitoSesion();
-      const canal = sb.channel(`sala:${sala}`, {
-        config: { private: true, broadcast: { self: false, ack: false }, presence: { key: id } },
-      });
-      canal
-        .on('broadcast', { event: 'voz' }, ({ payload }) => alVoz(payload))
-        .on('presence', { event: 'sync' }, () => alPresencia(Object.keys(canal.presenceState())));
-
-      let conectado = false;
-      // Los canales privados necesitan el token de la sesión antes de suscribirse.
-      Promise.resolve(sb.realtime.setAuth()).catch(() => {}).finally(() => {
-        canal.subscribe((estado) => {
-          conectado = estado === 'SUBSCRIBED';
-          alEstado?.(estado);
-          if (conectado) canal.track({ desde: Date.now() }).catch(() => {});
-        });
-      });
-
+      const oyente = {
+        alVoz,
+        alEstado,
+        alPresencia,
+        // Llega a un canal ya abierto por otro: se le da la presencia que hay.
+        alUnirse: (c) => alPresencia(c.datos.presentes ?? []),
+      };
+      const { compartido, soltar } = canales.unir(
+        `sala:${sala}`,
+        {
+          opciones: { config: { private: true, broadcast: { self: false, ack: false }, presence: { key: id } } },
+          preparar(canal, c) {
+            canal
+              .on('broadcast', { event: 'voz' }, ({ payload }) => c.oyentes.forEach((o) => o.alVoz(payload)))
+              .on('presence', { event: 'sync' }, () => {
+                c.datos.presentes = Object.keys(canal.presenceState());
+                c.oyentes.forEach((o) => o.alPresencia(c.datos.presentes));
+              });
+          },
+          // También tras una reconexión: la presencia hay que volver a anunciarla.
+          alSuscribir: (canal) => canal.track({ desde: Date.now() }).catch(() => {}),
+        },
+        oyente
+      );
       return {
         emitir(payload) {
-          if (!conectado) return;
-          canal.send({ type: 'broadcast', event: 'voz', payload }).catch(() => {});
+          if (!compartido.suscrito || !compartido.canal) return;
+          compartido.canal.send({ type: 'broadcast', event: 'voz', payload }).catch(() => {});
         },
-        cerrar() {
-          sb.removeChannel(canal);
-        },
+        cerrar: soltar,
       };
     },
 
