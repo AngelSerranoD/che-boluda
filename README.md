@@ -4,6 +4,8 @@ Walkie-talkie para hablar con amigos: salas y chats donde lo que dices suena al 
 
 © 2026 Ángel Serrano Domínguez. Todos los derechos reservados. Ver [LICENSE](LICENSE).
 
+**Web:** https://che-boluda.vercel.app · cada push a `main` despliega en Vercel.
+
 ## Qué hace
 
 - **Perfil propio**: nombre, @usuario, avatar con emoji o foto. Se entra con usuario y contraseña (sin correo).
