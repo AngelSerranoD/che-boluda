@@ -5,3 +5,6 @@ dist
 !.env.example
 *.local
 supabase/.temp
+
+.vercel
+.env*
