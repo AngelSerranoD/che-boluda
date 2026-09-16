@@ -223,6 +223,25 @@ test('salir de un grupo sí, de un directo no; borrar amistad', async () => {
   });
 });
 
+test('un cliente no puede inventarse la fecha de un mensaje', async () => {
+  const insertar = (columnas, valores) =>
+    filas(`insert into public.mensajes (sala_id, autor_id, audio, duracion_ms${columnas}) values ($1, $2, $3, 800${valores})`, [directo, uid.lucia, `${directo}/fecha.cba`]);
+  await como('lucia', async () => {
+    await assert.rejects(insertar(', creado_en', ", '2099-01-01'"), /permission denied/);
+    await insertar('', ''); // sin fecha sí se puede
+  });
+  const [{ futuro }] = await filas(`select count(*)::int as futuro from public.mensajes where creado_en > now() + interval '1 minute'`);
+  assert.equal(futuro, 0);
+});
+
+test('las funciones auxiliares de la RLS no están en la API pública', async () => {
+  for (const firma of ['es_miembro(uuid)', 'es_miembro_texto(text)', 'son_amigos(uuid,uuid)', 'comparte_sala(uuid)']) {
+    const [fila] = await filas(`select to_regprocedure($1) is null as fuera, to_regprocedure($2) is not null as dentro`, [`public.${firma}`, `privado.${firma}`]);
+    assert.deepEqual(fila, { fuera: true, dentro: true }, firma);
+  }
+  await como(null, () => assert.rejects(filas(`select privado.son_amigos($1, $2)`, [uid.lucia, uid.marta]), /permission denied/));
+});
+
 test('no_leidos_de es solo para el servidor', async () => {
   await como('lucia', () => assert.rejects(filas(`select * from public.no_leidos_de($1::uuid[])`, [[uid.lucia]]), /permission denied/));
   await db.exec('set role service_role');

@@ -30,11 +30,12 @@ El protocolo, la decisión de no emitir sin oyentes y el manejo del audio en iOS
 
 ### 1. Supabase
 
+Proyecto actual: `che-boluda` (ref `hqxjxbzpfmjhxxgrnmsp`, región eu-west-3), con las tres migraciones ya aplicadas.
+
 1. Crear un proyecto en [supabase.com](https://supabase.com) (plan gratuito).
 2. **Authentication → Sign In / Providers → Email**: desactivar **Confirm email**. La app usa usuario y contraseña y no manda correos.
-3. **SQL Editor**: pegar y ejecutar `supabase/migrations/20260916000000_esquema_inicial.sql`
-   (o con la CLI: `supabase link --project-ref <ref>` y `supabase db push`).
-4. **Project Settings → API**: copiar la URL, la clave `anon` y la `service_role`.
+3. Aplicar **en orden** los archivos de `supabase/migrations/` (SQL Editor, `supabase db push` o el MCP de Supabase).
+4. **Project Settings → API Keys**: copiar la URL, la clave publicable y la secreta (`service_role`).
 
 ### 2. Claves de avisos
 
