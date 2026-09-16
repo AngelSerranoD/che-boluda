@@ -1,0 +1,32 @@
+{
+  "name": "che-boluda",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Walkie-talkie para hablar con amigos: salas y chats de voz al momento. PWA para iPhone.",
+  "author": "Ángel Serrano Domínguez <angelsd7704@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "dev": "vite",
+    "dev:iphone": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test \"tests/*.test.js\"",
+    "iconos": "python tool/generar_iconos.py",
+    "vapid": "node tool/generar_vapid.js"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.28",
+    "tailwindcss": "^3.4.19",
+    "vite": "^8.3.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "web-push": "^3.6.7"
+  }
+}

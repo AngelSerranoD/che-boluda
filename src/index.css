@@ -1,0 +1,58 @@
+/* Ché boluda · Copyright (c) 2026 Ángel Serrano Domínguez. Todos los derechos reservados. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background: theme('colors.hueso');
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply bg-hueso font-sans text-tinta antialiased;
+    min-height: 100dvh;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input {
+    font-size: 17px; /* por debajo de 16 px Safari hace zoom al enfocar */
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.cuero');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .tarjeta {
+    @apply rounded-3xl border border-lino/80 bg-blanco shadow-arcilla;
+  }
+
+  .campo {
+    @apply w-full rounded-2xl border border-lino bg-blanco px-4 py-3.5 text-tinta shadow-hundido placeholder:text-corteza/70 focus:border-cuero focus:outline-none;
+  }
+
+  .sin-seleccion {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  .sin-barra {
+    scrollbar-width: none;
+  }
+  .sin-barra::-webkit-scrollbar {
+    display: none;
+  }
+}
