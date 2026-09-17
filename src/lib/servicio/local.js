@@ -24,7 +24,19 @@ function nuevoCodigo() {
   return [...azar].map((b) => ALFABETO[b % ALFABETO.length]).join('');
 }
 
-export function crearServicioLocal({ almacen = globalThis.localStorage, sesionTab = globalThis.sessionStorage } = {}) {
+const busDelNavegador = () =>
+  typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cheboluda-local') : null;
+
+/**
+ * `bus` es por donde hablan las pestañas: cualquier objeto con `postMessage`,
+ * `onmessage` y `close`. La demo del portfolio pasa uno propio con amigas
+ * simuladas que "están en otra pestaña".
+ */
+export function crearServicioLocal({
+  almacen = globalThis.localStorage,
+  sesionTab = globalThis.sessionStorage,
+  bus = busDelNavegador(),
+} = {}) {
   const leer = () => {
     try {
       return { ...vacia(), ...JSON.parse(almacen.getItem(CLAVE)) };
@@ -39,7 +51,6 @@ export function crearServicioLocal({ almacen = globalThis.localStorage, sesionTa
   const canales = new Map(); // sala -> Set de { alVoz, alPresencia }
   const presencia = new Map(); // sala -> Map(persona -> marca)
 
-  const bus = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cheboluda-local') : null;
   const enviarBus = (msg) => bus?.postMessage(msg);
 
   function guardar(db, cambio) {

@@ -39,7 +39,12 @@ function juntar(trozos) {
   return salida;
 }
 
+/**
+ * `servicio.abrirMicrofono`, si existe, sustituye al micro real: lo usa la demo
+ * del portfolio para no pedir permiso de micrófono a quien la visita.
+ */
 export function crearRadio({ servicio, yo }) {
+  const abrirMicro = servicio.abrirMicrofono ?? abrirMicrofono;
   const canales = new Map(); // sala → { conexion, presentes, silenciada }
   const entrantes = new Map(); // id → transmisión que se está oyendo
   const pendientes = new Map(); // id → envío que falló
@@ -228,7 +233,7 @@ export function crearRadio({ servicio, yo }) {
 
     try {
       await desbloquear();
-      e.micro = await abrirMicrofono({ alPcm: (pcm) => capturar(e, pcm) });
+      e.micro = await abrirMicro({ alPcm: (pcm) => capturar(e, pcm) });
     } catch (error) {
       await abandonar();
       sonido('error');
